@@ -11,7 +11,8 @@ var fs = require('fs'),
 	open = require('opn'),
 	es = require("event-stream"),
 	os = require('os'),
-	chokidar = require('chokidar');
+	chokidar = require('chokidar'),
+  shell = require('shelljs');
 require('colors');
 
 var INJECTED_CODE = fs.readFileSync(path.join(__dirname, "injected.html"), "utf8");
@@ -344,13 +345,24 @@ LiveServer.start = function(options) {
 	});
 	function handleChange(changePath) {
 		var cssChange = path.extname(changePath) === ".css";
+    var mdChange = path.extname(changePath) === ".md";
+    var mustacheChange = path.extname(changePath) === ".mustache"
 		if (LiveServer.logLevel >= 1) {
-			if (cssChange)
+			if (cssChange) {
 				console.log("CSS change detected".magenta, changePath);
-			else console.log("Change detected".cyan, changePath);
+      } else if (mdChange) {
+        console.log("Markdown change detected".magenta, changePath);
+      } else if (mustacheChange) {
+        console.log("Mustache template change detected".magenta, changePath);
+      } else {
+        console.log("Change detected".cyan, changePath);
+      }
 		}
 		clients.forEach(function(ws) {
 			if (ws)
+        if (mdChange || mustacheChange) {
+          shell.exec('npm run build')
+        }
 				ws.send(cssChange ? 'refreshcss' : 'reload');
 		});
 	}
